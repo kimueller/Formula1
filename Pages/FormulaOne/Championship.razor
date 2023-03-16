@@ -1,0 +1,116 @@
+﻿@page "/championships"
+@using Formula1.DTOs;
+@using Formula1.Models;
+@using Formula1.Services;
+@inject IFormulaOneService formelService;
+
+<AuthorizeView>
+    <Authorized>
+<h3>Championship</h3>
+<h5>
+    Year: <select @onchange="YearChanged" value="@selectedYear">
+        @foreach (var year in years)
+        {
+            <option value="@year">@year</option>
+        }
+    </select>
+</h5>
+<h5>
+    Type: <select @onchange="TypeChanged" value="@championShipType">
+        <option value="1">Driver</option>
+        <option value="2">Constructor</option>
+    </select>
+</h5>
+
+@if(championShipType == 1) //only displays the driver championship if selected
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Place</th>
+                <th>Driver</th>
+                <th>Team</th>
+                <th class="text-center">Points</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var driver in driverChampion)
+            {
+                <tr class="@(driverID == driver.DriverID ? "table-primary" : "")">
+                    <td>@place</td>
+                    <td>@formelService.GetDriverName(driver.DriverID)</td>
+                    <td>@formelService.GetTeamName(driver.DriverID)</td>
+                    <td class="text-center">@driver.TotalPoints</td>
+                </tr>
+                place++;
+            }
+        </tbody>
+    </table>
+}
+@if (championShipType == 2) //only displays constructor champion if selected
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Place</th>
+                <th>Team</th>
+                <th class="text-center">Points</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var team in constructorChampion)
+            {
+                <tr class="@(teamID == team.TeamID? "table-primary" : "")">
+                    <td>@place</td>
+                    <td>@team.TeamName</td>
+                    <td class="text-center">@team.TotalPoints</td>
+                </tr>
+                place++;
+            }
+        </tbody>
+    </table>
+}
+    </Authorized>
+    <NotAuthorized>
+        <h2>ACCESS DENIED!</h2>
+        <p>You have to be logged in to view this site!</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+    List<int> years;
+    int selectedYear;
+    int championShipType = 1; //default set on driver championship
+    List<DriverChampion> driverChampion;
+    List<ConstructorChampion> constructorChampion;
+    int place = 1;
+
+    //variables to make the hover effect
+    int driverID = 0;
+    int teamID = 0;
+
+
+    //loads data at the start of the page call up
+    protected override void OnInitialized()
+    {
+        selectedYear = formelService.GetLatestSeason();
+        years = formelService.GetSeasons();
+        driverChampion = formelService.GetChampionshipStats(selectedYear);
+    }
+
+    private void YearChanged(ChangeEventArgs e)
+    {
+        place = 1;
+        selectedYear = Convert.ToInt32(e.Value);
+        driverChampion = formelService.GetChampionshipStats(selectedYear);
+        constructorChampion = formelService.GetConstructorChampion(selectedYear);
+    }    
+    private void TypeChanged(ChangeEventArgs e)
+    {
+        place = 1;
+        championShipType = Convert.ToInt32(e.Value);
+        driverChampion = formelService.GetChampionshipStats(selectedYear);
+        constructorChampion = formelService.GetConstructorChampion(selectedYear);
+    }
+}

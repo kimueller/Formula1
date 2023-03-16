@@ -1,0 +1,40 @@
+﻿@page "/races/add"
+@using Formula1.Models;
+@using Formula1.Services;
+@inject IFormulaOneService formelService
+@inject NavigationManager navMan
+<AuthorizeView Context="authContext">
+    <Authorized>
+        <h3>New race</h3>
+        <EditForm Model="@race" OnValidSubmit="@Submit" Context="editContext">
+            <DataAnnotationsValidator/>
+
+            <div class="form-group">
+                <label for="trackName">Track name</label>
+                <InputText class="form-control" placeholder="Name..." @bind-Value="race.TrackName" />
+                <ValidationMessage For="@(() => race.TrackName)" />
+            </div>
+            <br />
+            <button class="btn btn-dark">ADD</button>
+        </EditForm>
+    </Authorized>
+    <NotAuthorized>
+        <h2>ACCESS DENIED!</h2>
+        <p>You have to be logged in to view this site!</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    Race race = new Race();
+
+    private void Submit()
+    {
+        if(string.IsNullOrEmpty(race.TrackName))
+        {
+            return;
+        }
+
+        formelService.AddRace(race);
+        navMan.NavigateTo("/races", true);
+    }
+}

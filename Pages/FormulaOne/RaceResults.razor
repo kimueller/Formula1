@@ -1,0 +1,183 @@
+﻿@page "/races/results"
+@using Formula1.Models;
+@using Formula1.Services;
+@inject IFormulaOneService formelService
+@inject NavigationManager navMan
+<AuthorizeView>
+    <Authorized>
+        <h3>Race results</h3>
+
+        <h5>
+            Race: <select @onchange="RaceChanged" value="@selectedRace">
+                @foreach (var race in races)
+                {
+                    <option value="@race.TrackName">@race.TrackName</option>
+                }
+            </select>
+        </h5>
+        <h5>
+            Year: <select @onchange="YearChanged" value="@selectedYear">
+                @foreach (var year in years)
+                {
+                    <option value="@year">@year</option>
+                }
+            </select>
+        </h5>
+        <h5>
+            Driver: <select @onchange="DriverChanged" value="@selectedDriver">
+                <option value="0">ALL</option>
+                @foreach (var driver in drivers)
+                {
+                    <option value="@driver.DriverID">@driver.FirstName @driver.LastName</option>
+                }
+            </select>
+        </h5>
+
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Place</th>
+                    <th>Driver</th>
+                    <th>Team</th>
+                    <th class="text-center">Gained points</th>
+                    <th class="text-center">Delete result</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var race in raceYears)
+                {
+                    <tr class="@(rankingID == race.RankingID ? "table-primary" : "")">
+                        <td>@race.RankingID</td>
+                        <td>@race.Drivers.FirstName @race.Drivers.LastName</td>
+                        <td>@formelService.GetTeamName(race.DriverID)</td>
+                        <td class="text-center">@race.Ranking.Points</td>
+                        <td class="text-center"><button class="btn btn-danger" @onclick="() => DeleteRaceResult(race)">🗑️</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (notUsed.Count != 0)
+        {
+            <h4>Add driver to race</h4>
+            <h5>Next place: <b>@places[place]</b></h5>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Driver</th>
+                        <th>Team</th>
+                        <th class="text-center">Add to race</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var driver in notUsed)
+                    {
+                        <tr class="@(driverID == driver.DriverID ? "table-primary" : "")">
+                            <td>@driver.FirstName @driver.LastName</td>
+                            <td>@formelService.GetTeamName(driver.DriverID)</td>
+                            <td class="text-center"><button class="btn btn-success" @onclick="() => AddToRace(driver.DriverID)">➕</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <h2>ACCESS DENIED!</h2>
+        <p>You have to be logged in to view this site!</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+
+@code {
+    List<RaceYear> raceYears;
+    List<Race> races;
+    List<Driver> drivers;
+    List<int> years;
+    List<Driver> notUsed;
+    string selectedRace;
+    int selectedYear;
+    int selectedDriver;
+
+    int rankingID = 0;
+    int driverID = 0;
+
+    int place = 1;
+    //used to get the current rank
+    int[] places = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 };
+
+    private void YearChanged(ChangeEventArgs e)
+    {
+        selectedYear = Convert.ToInt32(e.Value);
+        raceYears = formelService.GetRaceDetails(selectedYear, selectedRace, selectedDriver);
+        notUsed = formelService.GetNotUsedDrivers(selectedRace, selectedYear);
+        place = formelService.GetNotUsedRankings(selectedYear, selectedRace);
+        if (place <= 0)
+        {
+            place = 1;
+        }
+    }
+    private void RaceChanged(ChangeEventArgs e)
+    {
+        selectedRace = e.Value.ToString();
+        raceYears = formelService.GetRaceDetails(selectedYear, selectedRace, selectedDriver);
+        notUsed = formelService.GetNotUsedDrivers(selectedRace, selectedYear);
+        place = formelService.GetNotUsedRankings(selectedYear, selectedRace);
+        if (place <= 0)
+        {
+            place = 1;
+        }
+    }
+    private void DriverChanged(ChangeEventArgs e)
+    {
+        selectedDriver = Convert.ToInt32(e.Value);
+        raceYears = formelService.GetRaceDetails(selectedYear, selectedRace, selectedDriver);
+
+    }
+    protected override void OnInitialized()
+    {
+        selectedRace = formelService.GetFirstRace();
+        selectedYear = formelService.GetLatestSeason();
+        raceYears = formelService.GetRaceDetails(selectedYear, selectedRace, selectedDriver);
+        races = formelService.GetRaces();
+        years = formelService.GetSeasons();
+        drivers = formelService.GetDrivers();
+        notUsed = formelService.GetNotUsedDrivers(selectedRace, selectedYear);
+        place = formelService.GetNotUsedRankings(selectedYear, selectedRace);
+        if (place <= 0)
+        {
+            place = 1;
+        }
+
+    }
+    private void AddToRace(int driverID)
+    {
+        selectedDriver = 0;
+        RaceYear raceResult = new RaceYear();
+        raceResult.RaceID = formelService.GetIdOfRace(selectedRace);
+        raceResult.Year = selectedYear;
+        raceResult.DriverID = driverID;
+        raceResult.RankingID = places[place];
+        formelService.AddRaceResult(raceResult);
+        raceYears = formelService.GetRaceDetails(selectedYear, selectedRace, selectedDriver);
+        notUsed = formelService.GetNotUsedDrivers(selectedRace, selectedYear);
+        place = formelService.GetNotUsedRankings(selectedYear, selectedRace);
+        if (place <= 0)
+        {
+            place = 1;
+        }
+    }
+
+    private void DeleteRaceResult(RaceYear race)
+    {
+        formelService.DeleteRaceResult(race);
+        raceYears = formelService.GetRaceDetails(selectedYear, selectedRace, selectedDriver);
+        notUsed = formelService.GetNotUsedDrivers(selectedRace, selectedYear);
+        place = formelService.GetNotUsedRankings(selectedYear, selectedRace);
+        if (place <= 0)
+        {
+            place = 1;
+        }
+    }
+}

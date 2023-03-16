@@ -1,0 +1,58 @@
+﻿@page "/races"
+@using Formula1.Models;
+@using Formula1.Services;
+@inject IFormulaOneService formelService
+@inject NavigationManager navMan
+
+<AuthorizeView>
+    <Authorized>
+        <h3>Races</h3>
+
+        <label>Add new race:</label>
+        <button class="btn btn-success border-1" @onclick="() => AddRace()">NEW RACE</button>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>RaceID</th>
+                    <th>Track name</th>
+                    <th class="text-center">Delete race</th>
+                </tr>
+
+            </thead>
+            <tbody>
+                @foreach (var race in races)
+                {
+                    <tr>
+                        <td>@race.RaceID</td>
+                        <td>@race.TrackName</td>
+                        <td class="text-center"><button class="btn btn-danger" @onclick="() => DeleteRace(race)">🗑️</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </Authorized>
+    <NotAuthorized>
+        <h2>ACCESS DENIED!</h2>
+        <p>You have to be logged in to view this site!</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    List<Race> races;
+
+    protected override void OnInitialized()
+    {
+        races = formelService.GetRaces();
+    }
+
+    private void AddRace()
+    {
+        navMan.NavigateTo("races/add");
+    }
+    private void DeleteRace(Race race)
+    {
+        formelService.DeleteRace(race);
+        races = formelService.GetRaces();
+    }
+
+}

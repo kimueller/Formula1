@@ -1,0 +1,44 @@
+﻿@page "/drivers"
+@using Formula1.Models;
+@using Formula1.Services;
+@inject IFormulaOneService formelService;
+
+<AuthorizeView>
+    <Authorized>
+        <h3>Drivers</h3>
+
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Team</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var driver in drivers)
+                {
+                    <tr class="@(driverID == driver.DriverID ? "table-primary" : "")">
+                        <td>@driver.FirstName</td>
+                        <td>@driver.LastName</td>
+                        <td>@driver.Team.TeamName</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </Authorized>
+    <NotAuthorized>
+        <h2>ACCESS DENIED!</h2>
+        <p>You have to be logged in to view this site!</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    List<Driver> drivers = new List<Driver>();
+    private int driverID = 0;
+    protected override void OnInitialized()
+    {
+        drivers = formelService.GetDrivers();
+    }
+
+}
